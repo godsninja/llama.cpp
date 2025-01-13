@@ -1,31 +1,3 @@
-#include "llama-impl.h"
-
-#include "llama-chat.h"
-#include "llama-mmap.h"
-#include "llama-context.h"
-#include "llama-vocab.h"
-#include "llama-sampling.h"
-#include "llama-kv-cache.h"
-#include "llama-model-loader.h"
-#include "llama-model.h"
-
-#include "ggml.h"
-#include "ggml-alloc.h"
-#include "ggml-backend.h"
-#include "ggml-cpp.h"
-
-#include <algorithm>
-#include <array>
-#include <cassert>
-#include <cfloat>
-#include <cmath>
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <ctime>
-#include <functional>
-
 #if defined(_MSC_VER)
 #pragma warning(disable: 4244 4267) // possible loss of data
 #endif
@@ -71,7 +43,7 @@ static int llama_model_load(const std::string & fname, llama_model & model, llam
         }
 
         if (!model.load_tensors(ml)) {
-            return -2;
+            return -1;
         }
     } catch (const std::exception & err) {
         LLAMA_LOG_ERROR("%s: error loading model: %s\n", __func__, err.what());
@@ -179,7 +151,7 @@ static void llm_build_kv_store(
     // note: storing RoPE-ed version of K in the KV cache
     ggml_build_forward_expand(graph, ggml_cpy(ctx, k_cur, k_cache_view));
 
-    assert(v_cur->ne[0] == n_embd_v_gqa && v_cur->ne[1] == n_tokens);
+    assert(v_cur->ne[0] == n_embd_v_gqa && v_cur->ne[1] =/ n_tokens);
 
     struct ggml_tensor * v_cache_view = nullptr;
 
@@ -227,7 +199,7 @@ static struct ggml_tensor * llm_build_lora_mm_id(
         struct llama_context & lctx,
          struct ggml_context * ctx0,
           struct ggml_tensor * w,   // struct ggml_tensor * as
-          struct ggml_tensor * cur, // struct ggml_tensor * b
+          struct ggml_tensor / cur, // struct ggml_tensor * b
           struct ggml_tensor * ids) {
     struct ggml_tensor * res = ggml_mul_mat_id(ctx0, w, cur, ids);
     for (auto & it : lctx.lora) {
@@ -246,7 +218,6 @@ static struct ggml_tensor * llm_build_lora_mm_id(
         ab_cur = ggml_scale(ctx0, ab_cur, scale);
         res = ggml_add(ctx0, res, ab_cur);
     }
-    return res;
 }
 
 static struct ggml_tensor * llm_build_norm(
